@@ -21,8 +21,18 @@ no host `fenix`.
 ⚠️ **Os arquivos `Dockerfile`/`entrypoint.sh`/`compose.yml` no host (`/appdata/dosbox-tv/`) são
 "auto-gerados pela OMV"** — a GUI do Compose plugin pode sobrescrevê-los quando o app é editado por lá.
 Este repositório é a fonte da verdade; sempre que a OMV regenerar os arquivos, recole o conteúdo daqui.
-(Já aconteceu de a própria GUI corromper o `Dockerfile` no meio de uma sessão — sempre vale conferir
-o conteúdo real em disco depois de mexer na GUI.)
+
+⚠️ **A GUI da OMV corrompe especificamente o `entrypoint.sh` ao salvar.** Confirmado duas vezes nesta
+sessão: colar o conteúdo pelo editor da OMV trunca trechos no meio de linhas longas (ex:
+`2>/dev/null || true` virava só `2>/`). O `Dockerfile`, colado no mesmo momento, saiu ileso — a
+diferença parece ser as aspas aninhadas complexas do `entrypoint.sh` (`bash -c '...'` com aspas
+duplas e `$(...)` dentro de aspas simples), que a OMV não escapa/serializa direito ao salvar.
+**Não edite o `entrypoint.sh` pela GUI da OMV** — aplique mudanças direto no host via
+`scp`/`ssh` (`/appdata/dosbox-tv/entrypoint.sh`), contornando o editor. Depois de qualquer edição
+feita pela GUI (mesmo em outro campo do app), vale conferir o tamanho/conteúdo do `entrypoint.sh`
+no disco contra este repositório antes de confiar nele — a corrupção não afeta o container já
+rodando (a imagem já buildada tem sua própria cópia), só morde se a imagem for rebuildada a partir
+do arquivo corrompido.
 
 ## Volumes
 
