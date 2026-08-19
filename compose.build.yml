@@ -1,0 +1,8 @@
+# Override pra buildar a imagem localmente a partir do repositório, em vez de
+# puxar a publicada no GHCR:
+#
+#   docker compose -f compose.yml -f compose.build.yml up -d --build
+services:
+  dosbox-anywhere:
+    build: .
+    image: dosbox-anywhere:local

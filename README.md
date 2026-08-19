@@ -30,12 +30,29 @@ Componentes:
 
 ## Uso
 
+A imagem pronta é publicada em **`ghcr.io/ggaspari/dosbox-anywhere`** (buildada pelo GitHub
+Actions a cada push na `main`; tags `vX.Y.Z` geram versões `X.Y.Z`/`X.Y`). Não precisa clonar o
+repositório — só do `compose.yml`:
+
 ```sh
-git clone <este-repo> dosbox-anywhere && cd dosbox-anywhere
-docker compose up -d --build
+mkdir dosbox-anywhere && cd dosbox-anywhere
+wget https://raw.githubusercontent.com/ggaspari/dosbox-anywhere/main/compose.yml
+docker compose up -d
 ```
 
-Pronto. Na primeira subida o Sunshine gera config nova em `dockerdata/dosbox-anywhere/` — acesse a
+> Enquanto o pacote no GHCR for privado, o `docker pull` exige login:
+> `docker login ghcr.io -u <usuário> -p <token com escopo read:packages>`. Pra distribuir sem
+> login, torne o pacote público em GitHub → Packages → dosbox-anywhere → Package settings →
+> Change visibility.
+
+Pra buildar localmente em vez de puxar a imagem publicada (desenvolvimento):
+
+```sh
+git clone https://github.com/ggaspari/dosbox-anywhere && cd dosbox-anywhere
+docker compose -f compose.yml -f compose.build.yml up -d --build
+```
+
+Na primeira subida o Sunshine gera config nova em `dockerdata/dosbox-anywhere/` — acesse a
 web UI dele (`https://<host>:47990`) pra criar usuário e parear o Moonlight.
 
 Pra customizar, copie `.env.example` pra `.env`:
@@ -68,7 +85,9 @@ tudo relativo ao `$HOME`, que agora aponta pra `/config`.
 - `Dockerfile` — build da imagem
 - `entrypoint.sh` — bootstrap do container (Xorg, fluxbox, pulseaudio, DBGL, Sunshine)
 - `xorg-dummy.conf` — config do driver de vídeo dummy
-- `compose.yml` — orquestração (docker compose)
+- `compose.yml` — orquestração (docker compose), usando a imagem publicada no GHCR
+- `compose.build.yml` — override pra buildar a imagem localmente
+- `.github/workflows/build.yml` — CI que builda e publica a imagem no GHCR
 - `.env.example` — variáveis de ambiente disponíveis
 
 ## Problemas resolvidos (histórico)

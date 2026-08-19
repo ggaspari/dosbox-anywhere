@@ -1,7 +1,6 @@
 services:
   dosbox-anywhere:
-    build: .
-    image: dosbox-anywhere:latest
+    image: ghcr.io/ggaspari/dosbox-anywhere:latest
     platform: linux/amd64
     container_name: dosbox-anywhere
     network_mode: host
