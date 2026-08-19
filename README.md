@@ -1,14 +1,15 @@
-# dosbox-tv
+# dosbox-anywhere
 
 Container Docker que roda DOSBox Staging + DBGL (DOSBox Game Launcher) com streaming pra TV via
 [Sunshine](https://github.com/LizardByte/Sunshine) / Moonlight.
 
-Fork **agnóstico de distribuição**: roda em qualquer host Linux x86_64 com Docker (ou Podman com
-compose), sem depender de OMV, caminhos específicos de host ou GIDs fixos. Todo o estado do
+Fork **agnóstico de distribuição** do [dosbox-tv](https://github.com/ggaspari/dosbox-tv): roda em
+qualquer host Linux x86_64 com Docker (ou Podman com compose), sem depender de OMV, caminhos
+específicos de host ou GIDs fixos. Todo o estado do
 container vive em dois volumes:
 
 - **`/config`** — home do usuário do container: dados do DBGL, config do DOSBox, config/pareamentos
-  do Sunshine, logs. Default no host: `./dockerdata/dosbox-tv`
+  do Sunshine, logs. Default no host: `./dockerdata/dosbox-anywhere`
 - **`/games`** — biblioteca de jogos DOS. Default no host: `./games`
 
 Componentes:
@@ -30,11 +31,11 @@ Componentes:
 ## Uso
 
 ```sh
-git clone <este-repo> dosbox-tv && cd dosbox-tv
+git clone <este-repo> dosbox-anywhere && cd dosbox-anywhere
 docker compose up -d --build
 ```
 
-Pronto. Na primeira subida o Sunshine gera config nova em `dockerdata/dosbox-tv/` — acesse a
+Pronto. Na primeira subida o Sunshine gera config nova em `dockerdata/dosbox-anywhere/` — acesse a
 web UI dele (`https://<host>:47990`) pra criar usuário e parear o Moonlight.
 
 Pra customizar, copie `.env.example` pra `.env`:
@@ -44,7 +45,7 @@ Pra customizar, copie `.env.example` pra `.env`:
 | `PUID` / `PGID` | `1000` / `1000` | Dono dos arquivos em `/config` e `/games` |
 | `TZ` | `UTC` | Timezone (formato IANA, ex: `America/Bahia`) |
 | `RENDER_GID` | *auto* | GID do grupo dono de `/dev/dri/renderD128`; auto-detectado dentro do container, só defina se a detecção falhar |
-| `CONFIG_DIR` | `./dockerdata/dosbox-tv` | Caminho no host do volume `/config` |
+| `CONFIG_DIR` | `./dockerdata/dosbox-anywhere` | Caminho no host do volume `/config` |
 | `GAMES_DIR` | `./games` | Caminho no host do volume `/games` |
 
 O `network_mode: host` é intencional: o Sunshine precisa de várias portas TCP/UDP e o mDNS pro
@@ -56,7 +57,7 @@ Versões anteriores montavam o home em `/home/lizard`. Agora o home do usuário 
 `/config`. Pra migrar, basta copiar o conteúdo do volume antigo pro novo:
 
 ```sh
-cp -a /docker/dosbox-tv/home/. ./dockerdata/dosbox-tv/
+cp -a /docker/dosbox-tv/home/. ./dockerdata/dosbox-anywhere/
 ```
 
 Nada muda dentro dos arquivos — DBGL (`-Ddbgl.data.userhome=true`), dosbox e Sunshine resolvem

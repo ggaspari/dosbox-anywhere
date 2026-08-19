@@ -1,4 +1,4 @@
-# dosbox-tv — DOSBox Staging + DBGL + Sunshine em um container x86_64
+# dosbox-anywhere — DOSBox Staging + DBGL + Sunshine em um container x86_64
 # Imagem agnóstica de distribuição: todo o estado persistente vive em /config,
 # a biblioteca de jogos em /games.
 

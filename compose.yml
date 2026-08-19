@@ -1,9 +1,9 @@
 services:
-  dosbox-tv:
+  dosbox-anywhere:
     build: .
-    image: dosbox-tv:latest
+    image: dosbox-anywhere:latest
     platform: linux/amd64
-    container_name: dosbox-tv
+    container_name: dosbox-anywhere
     network_mode: host
     ipc: host
     security_opt:
@@ -22,7 +22,7 @@ services:
       - TZ=${TZ:-UTC}
       - RENDER_GID=${RENDER_GID:-}
     volumes:
-      - ${CONFIG_DIR:-./dockerdata/dosbox-tv}:/config
+      - ${CONFIG_DIR:-./dockerdata/dosbox-anywhere}:/config
       - ${GAMES_DIR:-./games}:/games
       - /dev/input:/dev/input
     restart: unless-stopped
