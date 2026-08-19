@@ -30,20 +30,15 @@ Componentes:
 
 ## Uso
 
-A imagem pronta é publicada em **`ghcr.io/ggaspari/dosbox-anywhere`** (buildada pelo GitHub
-Actions a cada push na `main`; tags `vX.Y.Z` geram versões `X.Y.Z`/`X.Y`). Não precisa clonar o
-repositório — só do `compose.yml`:
+A imagem pronta é **pública** em [`ghcr.io/ggaspari/dosbox-anywhere`](https://github.com/users/ggaspari/packages/container/package/dosbox-anywhere)
+(buildada pelo GitHub Actions a cada push na `main`; tags `vX.Y.Z` geram versões `X.Y.Z`/`X.Y`).
+Não precisa de login no registry nem de clonar o repositório — só do `compose.yml`:
 
 ```sh
 mkdir dosbox-anywhere && cd dosbox-anywhere
 wget https://raw.githubusercontent.com/ggaspari/dosbox-anywhere/main/compose.yml
 docker compose up -d
 ```
-
-> Enquanto o pacote no GHCR for privado, o `docker pull` exige login:
-> `docker login ghcr.io -u <usuário> -p <token com escopo read:packages>`. Pra distribuir sem
-> login, torne o pacote público em GitHub → Packages → dosbox-anywhere → Package settings →
-> Change visibility.
 
 Pra buildar localmente em vez de puxar a imagem publicada (desenvolvimento):
 
