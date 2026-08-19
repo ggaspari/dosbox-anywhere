@@ -1,8 +1,17 @@
 # dosbox-tv
 
 Container Docker que roda DOSBox Staging + DBGL (DOSBox Game Launcher) com streaming pra TV via
-[Sunshine](https://github.com/LizardByte/Sunshine) / Moonlight. Gerenciado pela GUI do OMV8 (Compose plugin)
-no host `fenix`.
+[Sunshine](https://github.com/LizardByte/Sunshine) / Moonlight.
+
+Fork **agnóstico de distribuição**: roda em qualquer host Linux x86_64 com Docker (ou Podman com
+compose), sem depender de OMV, caminhos específicos de host ou GIDs fixos. Todo o estado do
+container vive em dois volumes:
+
+- **`/config`** — home do usuário do container: dados do DBGL, config do DOSBox, config/pareamentos
+  do Sunshine, logs. Default no host: `./dockerdata/dosbox-tv`
+- **`/games`** — biblioteca de jogos DOS. Default no host: `./games`
+
+Componentes:
 
 - Imagem base: `lizardbyte/sunshine:latest-ubuntu-24.04`
 - Vídeo: Xorg com driver `dummy` (headless), capturado via VAAPI pelo Sunshine
@@ -10,35 +19,56 @@ no host `fenix`.
 - Launcher de jogos: [DBGL](https://dbgl.org/) 0.99 (build Linux)
 - Engine: [dosbox-staging](https://dosbox-staging.github.io/) 0.82.2
 
+## Requisitos
+
+- Host Linux **x86_64** (o binário do dosbox-staging só é distribuído pra essa arquitetura; a
+  imagem é pinada com `platform: linux/amd64`)
+- GPU com `/dev/dri` (VAAPI) pro encode do Sunshine
+- `/dev/uinput` e `/dev/input` acessíveis (input virtual do Moonlight + passthrough de
+  teclado/mouse/controle)
+
+## Uso
+
+```sh
+git clone <este-repo> dosbox-tv && cd dosbox-tv
+docker compose up -d --build
+```
+
+Pronto. Na primeira subida o Sunshine gera config nova em `dockerdata/dosbox-tv/` — acesse a
+web UI dele (`https://<host>:47990`) pra criar usuário e parear o Moonlight.
+
+Pra customizar, copie `.env.example` pra `.env`:
+
+| Variável | Default | Descrição |
+|---|---|---|
+| `PUID` / `PGID` | `1000` / `1000` | Dono dos arquivos em `/config` e `/games` |
+| `TZ` | `UTC` | Timezone (formato IANA, ex: `America/Bahia`) |
+| `RENDER_GID` | *auto* | GID do grupo dono de `/dev/dri/renderD128`; auto-detectado dentro do container, só defina se a detecção falhar |
+| `CONFIG_DIR` | `./dockerdata/dosbox-tv` | Caminho no host do volume `/config` |
+| `GAMES_DIR` | `./games` | Caminho no host do volume `/games` |
+
+O `network_mode: host` é intencional: o Sunshine precisa de várias portas TCP/UDP e o mDNS pro
+discovery do Moonlight funcionar sem configuração manual.
+
+## Migrando de uma instalação antiga (volume em `/home/lizard`)
+
+Versões anteriores montavam o home em `/home/lizard`. Agora o home do usuário do container **é**
+`/config`. Pra migrar, basta copiar o conteúdo do volume antigo pro novo:
+
+```sh
+cp -a /docker/dosbox-tv/home/. ./dockerdata/dosbox-tv/
+```
+
+Nada muda dentro dos arquivos — DBGL (`-Ddbgl.data.userhome=true`), dosbox e Sunshine resolvem
+tudo relativo ao `$HOME`, que agora aponta pra `/config`.
+
 ## Estrutura
 
 - `Dockerfile` — build da imagem
 - `entrypoint.sh` — bootstrap do container (Xorg, fluxbox, pulseaudio, DBGL, Sunshine)
 - `xorg-dummy.conf` — config do driver de vídeo dummy
-- `compose.yml` — compose gerado pela OMV (referência; a OMV é quem administra de fato)
-- `dosbox-tv.env.example` — variáveis de ambiente (arquivo real fica vazio/gerenciado pela OMV)
-
-⚠️ **Os arquivos `Dockerfile`/`entrypoint.sh`/`compose.yml` no host (`/appdata/dosbox-tv/`) são
-"auto-gerados pela OMV"** — a GUI do Compose plugin pode sobrescrevê-los quando o app é editado por lá.
-Este repositório é a fonte da verdade; sempre que a OMV regenerar os arquivos, recole o conteúdo daqui.
-
-⚠️ **A GUI da OMV corrompe especificamente o `entrypoint.sh` ao salvar.** Confirmado duas vezes nesta
-sessão: colar o conteúdo pelo editor da OMV trunca trechos no meio de linhas longas (ex:
-`2>/dev/null || true` virava só `2>/`). O `Dockerfile`, colado no mesmo momento, saiu ileso — a
-diferença parece ser as aspas aninhadas complexas do `entrypoint.sh` (`bash -c '...'` com aspas
-duplas e `$(...)` dentro de aspas simples), que a OMV não escapa/serializa direito ao salvar.
-**Não edite o `entrypoint.sh` pela GUI da OMV** — aplique mudanças direto no host via
-`scp`/`ssh` (`/appdata/dosbox-tv/entrypoint.sh`), contornando o editor. Depois de qualquer edição
-feita pela GUI (mesmo em outro campo do app), vale conferir o tamanho/conteúdo do `entrypoint.sh`
-no disco contra este repositório antes de confiar nele — a corrupção não afeta o container já
-rodando (a imagem já buildada tem sua própria cópia), só morde se a imagem for rebuildada a partir
-do arquivo corrompido.
-
-## Volumes
-
-- `/docker/dosbox-tv/home` → `/home/lizard` — home do usuário (config do DOSBox, dados do DBGL)
-- `/srv/mergerfs/mediapool/data/games-dos` → `/games` — biblioteca de jogos DOS (persistente)
-- `/dev/input` → `/dev/input` — passthrough de teclado/mouse/controle
+- `compose.yml` — orquestração (docker compose)
+- `.env.example` — variáveis de ambiente disponíveis
 
 ## Problemas resolvidos (histórico)
 
@@ -52,7 +82,7 @@ com `swtlin64.jar` real) e adicionando `libgtk-3-0t64` + `libwebkit2gtk-4.1-0` c
 ### 2. DOSBox travava com `SDL: Could not initialize video: Couldn't find matching GLX visual`
 
 Causa: o driver `dummy` do Xorg não expõe GLX/3D. O output padrão do dosbox-staging é `opengl`, que
-precisa de um contexto GL válido. Corrigido forçando, em `~/.config/dosbox/dosbox-staging.conf`:
+precisa de um contexto GL válido. Corrigido forçando, em `/config/.config/dosbox/dosbox-staging.conf`:
 
 ```ini
 [sdl]
@@ -67,7 +97,7 @@ Isso faz o SDL renderizar via software puro, sem precisar de GLX/aceleração 3D
 O DBGL tem um bug próprio que derruba o processo Java inteiro em certas telas (ver item 5), e o
 fluxbox pode cair silenciosamente sem log nenhum. Nenhum dos dois tinha *restart* automático.
 Corrigido envolvendo os dois em loops de supervisão no `entrypoint.sh`, com saída persistida em
-`/home/lizard/fluxbox.log` e `/home/lizard/dbgl.log` (o `entrypoint.sh` deste repo já reflete isso).
+`/config/fluxbox.log` e `/config/dbgl.log`.
 
 ### 4. Log dos processos supervisionados vazio / permission denied
 
@@ -106,6 +136,6 @@ antes de subir o DBGL; resolvido recriando o container do zero.
 
 Jogos GOG.com (DOS/Sierra etc.) geralmente vêm como instalador InnoSetup — extraia com
 [innoextract](https://constexpr.org/innoextract/) (sem precisar rodar o instalador interativo) e
-copie a pasta do jogo pra `/srv/mergerfs/mediapool/data/games-dos/<NOME_DO_JOGO>` no host. Depois
+copie a pasta do jogo pro diretório de games no host (`games/<NOME_DO_JOGO>` por default). Depois
 cadastre no DBGL via **Profile > New Profile**, apontando o **Main executable** pro `.exe` principal
 do jogo.
